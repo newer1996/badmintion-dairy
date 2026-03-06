@@ -27,7 +27,7 @@ class _StatsScreenState extends State<StatsScreen> {
     
     final records = await DatabaseService.instance.getRecords();
     final orgs = await DatabaseService.instance.getOrganizations();
-    final stats = await DatabaseService.instance.getStatistics();
+    await DatabaseService.instance.getStatistics();
     
     setState(() {
       _records = records;
