@@ -36,7 +36,6 @@ class BadmintonDiaryApp extends StatelessWidget {
           seedColor: const Color(0xFF07C160),
           brightness: Brightness.light,
         ),
-        fontFamily: 'NotoSansSC',
         appBarTheme: const AppBarTheme(
           centerTitle: true,
           elevation: 0,
@@ -72,7 +71,6 @@ class BadmintonDiaryApp extends StatelessWidget {
           seedColor: const Color(0xFF07C160),
           brightness: Brightness.dark,
         ),
-        fontFamily: 'NotoSansSC',
       ),
       home: const HomeScreen(),
     );
