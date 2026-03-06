@@ -46,3 +46,56 @@ jobs:
       with:
         name: app-debug
         path: build/app/outputs/flutter-apk/app-debug.apk
+    
+    - name: Get version
+      id: version
+      run: |
+        VERSION=$(grep "version:" pubspec.yaml | head -1 | awk '{print $2}')
+        echo "VERSION=$VERSION" >> $GITHUB_ENV
+        echo "TAG=v$VERSION" >> $GITHUB_ENV
+        echo "BUILD_TIME=$(date +%Y%m%d-%H%M%S)" >> $GITHUB_ENV
+    
+    - name: Create Release
+      if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ env.TAG }}-${{ env.BUILD_TIME }}
+        name: "🏸 羽球日记 ${{ env.VERSION }} (${{ env.BUILD_TIME }})"
+        body: |
+          ## 🎉 羽球日记 ${{ env.VERSION }} 发布
+          
+          ### ✨ 功能特性
+          - 📅 **活动管理** - 创建和管理羽毛球活动
+          - 📝 **记录功能** - 记录打球费用、运动数据、对战结果
+          - 📊 **数据统计** - 费用分析、战绩统计、热量消耗
+          - 🏸 **多组织支持** - 公司球友群、俱乐部等
+          - 🎨 **Material 3 设计** + 深色模式
+          - 🤖 **AI自动修复** - 智能代码修复
+          - 🔔 **通知提醒** - 活动提醒功能
+          - 🌙 **深色模式** - 支持浅色/深色主题
+          - 💾 **数据备份** - 导出JSON/CSV
+          
+          ### 📱 小米澎湃OS 适配
+          - ✅ targetSdk 35 (Android 15)
+          - ✅ 64位架构 (arm64-v8a)
+          - ✅ 权限最小化
+          - ✅ 全面屏适配
+          
+          ### 📥 下载安装
+          1. **直接下载**: 点击下方 Assets 中的 APK 文件
+          2. **安装**: 在手机上开启「允许安装未知来源应用」后安装
+          
+          ### 🛠️ 系统要求
+          - Android 8.0+ (API 26+)
+          - 64位处理器 (arm64-v8a)
+          - 100MB+ 存储空间
+          
+          ---
+          **构建时间**: ${{ env.BUILD_TIME }}
+          
+          Made with ❤️ for badminton lovers
+        files: build/app/outputs/flutter-apk/app-debug.apk
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

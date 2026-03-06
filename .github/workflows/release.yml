@@ -1,4 +1,4 @@
-name: Create Release
+name: Create Release with APK
 
 on:
   workflow_run:
@@ -16,21 +16,50 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
     
-    - name: Download APK artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: app-debug
-        path: ./apk/
-      continue-on-error: true
+    - name: Download APK from workflow run
+      run: |
+        # 获取 artifact 下载 URL
+        RUN_ID="${{ github.event.workflow_run.id }}"
+        ARTIFACTS_URL="https://api.github.com/repos/${{ github.repository }}/actions/runs/${RUN_ID}/artifacts"
+        
+        # 下载 artifacts 列表
+        curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+          -H "Accept: application/vnd.github.v3+json" \
+          "$ARTIFACTS_URL" > artifacts.json
+        
+        # 解析 artifact ID
+        ARTIFACT_ID=$(cat artifacts.json | jq -r '.artifacts[] | select(.name == "app-debug") | .id')
+        
+        if [ -z "$ARTIFACT_ID" ]; then
+          echo "❌ 未找到 app-debug artifact"
+          exit 1
+        fi
+        
+        echo "📥 下载 artifact ID: $ARTIFACT_ID"
+        
+        # 下载 artifact zip
+        curl -s -L -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+          "https://api.github.com/repos/${{ github.repository }}/actions/artifacts/${ARTIFACT_ID}/zip" \
+          -o app-debug.zip
+        
+        # 解压
+        unzip -q app-debug.zip -d ./apk/
+        
+        # 重命名为更友好的名称
+        mv ./apk/app-debug.apk ./apk/羽球日记-v1.1.0.apk 2>/dev/null || mv ./apk/*.apk ./apk/羽球日记-v1.1.0.apk
+        
+        echo "✅ APK 下载完成"
+        ls -lh ./apk/
     
-    - name: Get version
+    - name: Get version and create tag
       id: version
       run: |
         VERSION=$(grep "version:" pubspec.yaml | head -1 | awk '{print $2}')
         echo "VERSION=$VERSION" >> $GITHUB_ENV
         echo "TAG=v$VERSION" >> $GITHUB_ENV
+        echo "版本: $VERSION"
     
-    - name: Create Release
+    - name: Create Release with APK
       uses: softprops/action-gh-release@v1
       with:
         tag_name: ${{ env.TAG }}
@@ -44,6 +73,10 @@ jobs:
           - 📊 **数据统计** - 费用分析、战绩统计、热量消耗
           - 🏸 **多组织支持** - 公司球友群、俱乐部等
           - 🎨 **Material 3 设计** + 深色模式
+          - 🤖 **AI自动修复** - 智能代码修复
+          - 🔔 **通知提醒** - 活动提醒功能
+          - 🌙 **深色模式** - 支持浅色/深色主题
+          - 💾 **数据备份** - 导出JSON/CSV
           
           ### 📱 小米澎湃OS 适配
           - ✅ targetSdk 35 (Android 15)
@@ -52,7 +85,7 @@ jobs:
           - ✅ 全面屏适配
           
           ### 📥 下载安装
-          1. 下载下方的 APK 文件
+          1. 点击下方 Assets 中的 APK 文件下载
           2. 在手机上开启「允许安装未知来源应用」
           3. 安装并享受羽毛球记录体验！
           
@@ -63,15 +96,14 @@ jobs:
           
           ---
           Made with ❤️ for badminton lovers
-        files: |
-          ./apk/app-debug.apk
+        files: ./apk/*.apk
         draft: false
         prerelease: false
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      continue-on-error: true
     
     - name: Send release notification
+      if: always()
       uses: dawidd6/action-send-mail@v3
       with:
         server_address: smtp.qq.com
@@ -87,7 +119,7 @@ jobs:
           <p><strong>状态:</strong> ✅ 构建成功并已发布</p>
           
           <h3>📥 下载地址</h3>
-          <p><a href="https://github.com/${{ github.repository }}/releases/tag/${{ env.TAG }}">GitHub Release 页面</a></p>
+          <p><a href="https://github.com/${{ github.repository }}/releases/tag/${{ env.TAG }}">GitHub Release 页面（直接下载APK）</a></p>
           
           <h3>✨ 主要功能</h3>
           <ul>
@@ -95,6 +127,8 @@ jobs:
             <li>📝 打球记录</li>
             <li>📊 数据统计</li>
             <li>🏸 多组织支持</li>
+            <li>🤖 AI自动修复</li>
+            <li>🔔 通知提醒</li>
           </ul>
           
           <p><small>此邮件由 GitHub Actions 自动发送</small></p>
