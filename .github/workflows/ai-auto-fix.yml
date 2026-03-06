@@ -1,0 +1,65 @@
+name: AI Auto Fix
+
+on:
+  workflow_run:
+    workflows: ["Build APK"]
+    types:
+      - completed
+
+jobs:
+  ai-fix:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        fetch-depth: 0
+    
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        pip install PyGithub requests
+    
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.24.0'
+        channel: 'stable'
+    
+    - name: Run AI Fix Script
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_REPOSITORY: ${{ github.repository }}
+        GITHUB_RUN_ID: ${{ github.event.workflow_run.id }}
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        AI_BASE_URL: ${{ secrets.AI_BASE_URL || 'https://api.openai.com/v1' }}
+      run: |
+        python3 scripts/fix_code.py
+      continue-on-error: true
+    
+    - name: Send notification
+      if: always()
+      uses: dawidd6/action-send-mail@v3
+      with:
+        server_address: smtp.qq.com
+        server_port: 587
+        username: ${{ secrets.QQ_EMAIL }}
+        password: ${{ secrets.QQ_EMAIL_PASSWORD }}
+        subject: "🔧 AI自动修复 ${{ job.status == 'success' && '成功' || '失败' }} - 羽球日记"
+        to: 318768183@qq.com
+        html_body: |
+          <h2>🤖 AI自动修复报告</h2>
+          
+          <p><strong>状态:</strong> ${{ job.status }}</p>
+          <p><strong>工作流:</strong> ${{ github.event.workflow_run.name }}</p>
+          <p><strong>运行编号:</strong> #${{ github.event.workflow_run.run_number }}</p>
+          
+          <p><a href="${{ github.event.workflow_run.html_url }}">查看详情</a></p>
+      continue-on-error: true

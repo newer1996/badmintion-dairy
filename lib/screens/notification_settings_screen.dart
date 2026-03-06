@@ -65,7 +65,6 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
           const SizedBox(height: 12),
           _buildCard(
             _reminderOptions.map((option) {
-              final isSelected = _settings!.reminderMinutes == option['minutes'];
               return RadioListTile<int>(
                 title: Text('活动前 ${option['label']}'),
                 value: option['minutes'],

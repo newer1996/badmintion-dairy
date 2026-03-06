@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/settings_service.dart';
-import '../models/settings.dart';
+
 
 // 简化版通知服务，先确保构建成功
 class NotificationService {

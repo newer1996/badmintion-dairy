@@ -75,7 +75,7 @@ class _BackupScreenState extends State<BackupScreen> {
           const SizedBox(height: 12),
           _buildCard([
             ListTile(
-              leading: const Icon(Icons.download_file),
+              leading: const Icon(Icons.download),
               title: const Text('从 JSON 导入'),
               subtitle: const Text('从备份文件恢复数据'),
               trailing: _isImporting
