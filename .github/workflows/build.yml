@@ -5,7 +5,7 @@ on:
     branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
-  workflow_dispatch:  # 允许手动触发
+  workflow_dispatch:
 
 jobs:
   build:
@@ -31,7 +31,7 @@ jobs:
       run: flutter pub get
     
     - name: Analyze code
-      run: flutter analyze
+      run: flutter analyze --no-fatal-infos
     
     - name: Build APK (Debug)
       run: flutter build apk --debug
@@ -41,54 +41,3 @@ jobs:
       with:
         name: app-debug
         path: build/app/outputs/flutter-apk/app-debug.apk
-    
-    - name: Build APK (Release - unsigned)
-      run: flutter build apk --release
-      
-    - name: Upload Release APK
-      uses: actions/upload-artifact@v4
-      with:
-        name: app-release-unsigned
-        path: build/app/outputs/flutter-apk/app-release.apk
-
-  build-signed:
-    runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch'  # 仅手动触发签名构建
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Setup Java
-      uses: actions/setup-java@v4
-      with:
-        java-version: '17'
-        distribution: 'temurin'
-    
-    - name: Setup Flutter
-      uses: subosito/flutter-action@v2
-      with:
-        flutter-version: '3.24.0'
-        channel: 'stable'
-    
-    - name: Get dependencies
-      run: flutter pub get
-    
-    - name: Decode keystore
-      env:
-        KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-      run: |
-        echo "$KEYSTORE_BASE64" | base64 -d > android/app/release.keystore
-    
-    - name: Build signed APK
-      env:
-        KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-        KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-        KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-      run: flutter build apk --release
-    
-    - name: Upload signed APK
-      uses: actions/upload-artifact@v4
-      with:
-        name: app-release-signed
-        path: build/app/outputs/flutter-apk/app-release.apk

@@ -24,7 +24,6 @@ if (flutterVersionName == null) {
 
 android {
     namespace "com.example.badminton_diary"
-    // 小米澎湃OS: targetSdk >= 33 (Android 13)
     compileSdkVersion 35
     ndkVersion flutter.ndkVersion
 
@@ -43,44 +42,27 @@ android {
 
     defaultConfig {
         applicationId "com.example.badminton_diary"
-        // 小米澎湃OS: minSdk 26+ 推荐
         minSdkVersion 26
-        // 小米澎湃OS: targetSdk >= 34 (Android 14)
         targetSdkVersion 35
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
         
-        // 小米澎湃OS: 只打64位包 (arm64-v8a)
         ndk {
             abiFilters "arm64-v8a"
         }
         
-        // 小米澎湃OS 适配
         multiDexEnabled true
     }
 
     signingConfigs {
-        release {
-            // 小米澎湃OS: 必须使用正式签名 V1+V2+V3
-            // 请替换为您的签名配置
-            storeFile file("release.keystore")
-            storePassword "your_password"
-            keyAlias "your_alias"
-            keyPassword "your_password"
-            // 启用 V1+V2+V3 签名
-            v1SigningEnabled true
-            v2SigningEnabled true
-            v3SigningEnabled true
-        }
         debug {
-            // 调试签名
+            storeFile file("debug.keystore")
         }
     }
 
     buildTypes {
         release {
-            signingConfig signingConfigs.release
-            // 先不混淆，方便调试
+            signingConfig signingConfigs.debug
             minifyEnabled false
             shrinkResources false
         }
@@ -95,6 +77,5 @@ flutter {
 }
 
 dependencies {
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
     implementation 'androidx.multidex:multidex:2.0.1'
 }
