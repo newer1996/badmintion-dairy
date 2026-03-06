@@ -225,12 +225,12 @@ class _BackupScreenState extends State<BackupScreen> {
   Future<void> _exportData() async {
     setState(() => _isExporting = true);
     try {
-      await BackupService.instance.exportData();
+      final path = await BackupService.instance.exportData();
       await SettingsService.instance.setLastBackupTime(DateTime.now());
       await _loadSettings();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('数据导出成功')),
+          SnackBar(content: Text('数据导出成功: $path')),
         );
       }
     } catch (e) {
