@@ -78,8 +78,15 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
   }
 
   Future<void> _save() async {
-    if (_formKey.currentState?.validate() != true) return;
+    debugPrint('📝 _save() called');
+    
+    if (_formKey.currentState?.validate() != true) {
+      debugPrint('❌ Form validation failed');
+      return;
+    }
+    
     if (_selectedOrg == null) {
+      debugPrint('❌ No organization selected');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('请选择组织')),
       );
@@ -90,9 +97,23 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
     final startMinutes = _startTime.hour * 60 + _startTime.minute;
     final endMinutes = _endTime.hour * 60 + _endTime.minute;
     if (endMinutes <= startMinutes) {
+      debugPrint('❌ Invalid time: end <= start');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('结束时间必须晚于开始时间')),
       );
+      return;
+    }
+
+    // 检查时间冲突
+    debugPrint('🔍 Checking for time conflicts...');
+    final hasConflict = await _checkTimeConflict();
+    if (hasConflict) {
+      debugPrint('❌ Time conflict detected');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('该时间段已有其他活动')),
+        );
+      }
       return;
     }
 
@@ -109,11 +130,53 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
       createdAt: DateTime.now(),
     );
 
-    await DatabaseService.instance.insertActivity(activity);
+    debugPrint('💾 Saving activity: ${activity.toMap()}');
     
-    if (mounted) {
-      Navigator.pop(context, true);
+    try {
+      await DatabaseService.instance.insertActivity(activity);
+      debugPrint('✅ Activity saved successfully');
+      
+      if (mounted) {
+        Navigator.pop(context, true);
+      }
+    } catch (e, stackTrace) {
+      debugPrint('❌ Error saving activity: $e');
+      debugPrint('Stack trace: $stackTrace');
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('保存失败: $e')),
+        );
+      }
     }
+  }
+
+  Future<bool> _checkTimeConflict() async {
+    final activities = await DatabaseService.instance.getUpcomingActivities();
+    
+    final newStart = _startTime.hour * 60 + _startTime.minute;
+    final newEnd = _endTime.hour * 60 + _endTime.minute;
+    
+    for (final activity in activities) {
+      // 只检查同一天的活动
+      if (activity.date.year == _selectedDate.year &&
+          activity.date.month == _selectedDate.month &&
+          activity.date.day == _selectedDate.day) {
+        
+        final parts = activity.startTime.split(':');
+        final existStart = int.parse(parts[0]) * 60 + int.parse(parts[1]);
+        
+        final endParts = activity.endTime.split(':');
+        final existEnd = int.parse(endParts[0]) * 60 + int.parse(endParts[1]);
+        
+        // 检查时间重叠
+        if ((newStart < existEnd && newEnd > existStart)) {
+          return true;
+        }
+      }
+    }
+    
+    return false;
   }
 
   @override

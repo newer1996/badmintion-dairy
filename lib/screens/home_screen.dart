@@ -6,7 +6,7 @@ import '../services/database_service.dart';
 import 'add_activity_screen.dart';
 import 'add_record_screen.dart';
 import 'stats_screen.dart';
-import 'profile_screen.dart';
+import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -21,7 +21,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<Widget> _screens = [
     const ScheduleTab(),
     const StatsScreen(),
-    const ProfileScreen(),
+    const SettingsScreen(),
   ];
 
   @override
@@ -43,9 +43,9 @@ class _HomeScreenState extends State<HomeScreen> {
             label: '统计',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            activeIcon: Icon(Icons.person),
-            label: '我的',
+            icon: Icon(Icons.settings_outlined),
+            activeIcon: Icon(Icons.settings),
+            label: '设置',
           ),
         ],
       ),
