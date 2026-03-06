@@ -151,7 +151,7 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
                     _locationController.text = org!.defaultLocation!;
                   }
                   if (org?.defaultCost != null) {
-                    _costController.text = org.defaultCost.toString();
+                    _costController.text = org!.defaultCost.toString();
                   }
                 });
               },

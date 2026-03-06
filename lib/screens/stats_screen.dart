@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:fl_chart/fl_chart.dart';
 import '../services/database_service.dart';
 import '../models/record.dart';
 import '../models/organization.dart';
@@ -13,7 +12,6 @@ class StatsScreen extends StatefulWidget {
 
 class _StatsScreenState extends State<StatsScreen> {
   String _timeRange = 'month';
-  Map<String, dynamic> _stats = {};
   List<Record> _records = [];
   List<Organization> _organizations = [];
   bool _isLoading = true;
@@ -34,7 +32,6 @@ class _StatsScreenState extends State<StatsScreen> {
     setState(() {
       _records = records;
       _organizations = orgs;
-      _stats = stats;
       _isLoading = false;
     });
   }
@@ -266,7 +263,6 @@ class _StatsScreenState extends State<StatsScreen> {
           const SizedBox(height: 16),
           ...costs.entries.map((entry) {
             final index = costs.keys.toList().indexOf(entry.key);
-            final percentage = total > 0 ? (entry.value / total * 100) : 0;
             return Padding(
               padding: const EdgeInsets.only(bottom: 12),
               child: Row(

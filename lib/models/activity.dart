@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart';
+
 enum ActivityStatus { pending, registered, completed, cancelled }
 
 class Activity {
