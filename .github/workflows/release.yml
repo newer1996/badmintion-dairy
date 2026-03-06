@@ -1,0 +1,101 @@
+name: Create Release
+
+on:
+  workflow_run:
+    workflows: ["Build APK"]
+    types:
+      - completed
+    branches: [master, main]
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Download APK artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: app-debug
+        path: ./apk/
+      continue-on-error: true
+    
+    - name: Get version
+      id: version
+      run: |
+        VERSION=$(grep "version:" pubspec.yaml | head -1 | awk '{print $2}')
+        echo "VERSION=$VERSION" >> $GITHUB_ENV
+        echo "TAG=v$VERSION" >> $GITHUB_ENV
+    
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ env.TAG }}
+        name: "🏸 羽球日记 ${{ env.VERSION }}"
+        body: |
+          ## 🎉 羽球日记 ${{ env.VERSION }} 发布
+          
+          ### ✨ 功能特性
+          - 📅 **活动管理** - 创建和管理羽毛球活动
+          - 📝 **记录功能** - 记录打球费用、运动数据、对战结果
+          - 📊 **数据统计** - 费用分析、战绩统计、热量消耗
+          - 🏸 **多组织支持** - 公司球友群、俱乐部等
+          - 🎨 **Material 3 设计** + 深色模式
+          
+          ### 📱 小米澎湃OS 适配
+          - ✅ targetSdk 35 (Android 15)
+          - ✅ 64位架构 (arm64-v8a)
+          - ✅ 权限最小化
+          - ✅ 全面屏适配
+          
+          ### 📥 下载安装
+          1. 下载下方的 APK 文件
+          2. 在手机上开启「允许安装未知来源应用」
+          3. 安装并享受羽毛球记录体验！
+          
+          ### 🛠️ 系统要求
+          - Android 8.0+ (API 26+)
+          - 64位处理器 (arm64-v8a)
+          - 100MB+ 存储空间
+          
+          ---
+          Made with ❤️ for badminton lovers
+        files: |
+          ./apk/app-debug.apk
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      continue-on-error: true
+    
+    - name: Send release notification
+      uses: dawidd6/action-send-mail@v3
+      with:
+        server_address: smtp.qq.com
+        server_port: 587
+        username: ${{ secrets.QQ_EMAIL }}
+        password: ${{ secrets.QQ_EMAIL_PASSWORD }}
+        subject: "🎉 羽球日记 ${{ env.VERSION }} 发布成功！"
+        to: 318768183@qq.com
+        html_body: |
+          <h2>🎉 羽球日记新版本发布！</h2>
+          
+          <p><strong>版本:</strong> ${{ env.VERSION }}</p>
+          <p><strong>状态:</strong> ✅ 构建成功并已发布</p>
+          
+          <h3>📥 下载地址</h3>
+          <p><a href="https://github.com/${{ github.repository }}/releases/tag/${{ env.TAG }}">GitHub Release 页面</a></p>
+          
+          <h3>✨ 主要功能</h3>
+          <ul>
+            <li>📅 活动管理</li>
+            <li>📝 打球记录</li>
+            <li>📊 数据统计</li>
+            <li>🏸 多组织支持</li>
+          </ul>
+          
+          <p><small>此邮件由 GitHub Actions 自动发送</small></p>
+      continue-on-error: true
