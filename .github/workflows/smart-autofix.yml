@@ -1,0 +1,112 @@
+name: Smart Auto Fix & Notify
+
+on:
+  workflow_run:
+    workflows: ["Build APK"]
+    types:
+      - completed
+
+jobs:
+  analyze-and-fix:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        fetch-depth: 0
+    
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: pip install Pillow requests
+    
+    - name: Get build logs
+      id: logs
+      run: |
+        # 下载构建日志
+        curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+          -L "${{ github.event.workflow_run.logs_url }}" \
+          -o build-logs.zip || echo "Could not download logs"
+        
+        # 解压日志
+        unzip -q build-logs.zip -d logs/ 2>/dev/null || echo "No logs to extract"
+        
+        # 分析错误
+        echo "BUILD_ERRORS=" >> $GITHUB_ENV
+        if grep -r "debug.keystore not found" logs/ 2>/dev/null; then
+          echo "BUILD_ERRORS=${BUILD_ERRORS}keystore_missing," >> $GITHUB_ENV
+        fi
+        if grep -r "Android resource linking failed" logs/ 2>/dev/null; then
+          echo "BUILD_ERRORS=${BUILD_ERRORS}resource_linking," >> $GITHUB_ENV
+        fi
+        if grep -r "pubspec.yaml" logs/ 2>/dev/null | grep -q "asset entry"; then
+          echo "BUILD_ERRORS=${BUILD_ERRORS}missing_asset," >> $GITHUB_ENV
+        fi
+      continue-on-error: true
+    
+    - name: Run auto-fix script
+      id: autofix
+      run: |
+        python3 scripts/auto_fix.py
+        
+        # 检查是否有更改
+        if [ -n "$(git status --porcelain)" ]; then
+          echo "CHANGES_DETECTED=true" >> $GITHUB_ENV
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+          git add -A
+          git commit -m "🔧 Auto-fix: 修复构建失败问题
+
+$(python3 scripts/auto_fix.py 2>&1 | grep -A 20 '已应用' || echo '自动修复已应用')"
+          git push origin ${{ github.event.workflow_run.head_branch }}
+        else
+          echo "CHANGES_DETECTED=false" >> $GITHUB_ENV
+        fi
+      continue-on-error: true
+    
+    - name: Send email notification
+      uses: dawidd6/action-send-mail@v3
+      with:
+        server_address: smtp.qq.com
+        server_port: 587
+        username: ${{ secrets.QQ_EMAIL }}
+        password: ${{ secrets.QQ_EMAIL_PASSWORD }}
+        subject: "${{ env.CHANGES_DETECTED == 'true' && '✅ 构建已自动修复' || '❌ 构建失败 - 需要手动修复' }} - 羽球日记"
+        to: 318768183@qq.com
+        from: "羽球日记 CI <${{ secrets.QQ_EMAIL }}>"
+        html_body: |
+          <h2>🔔 羽球日记构建状态通知</h2>
+          
+          <p><strong>仓库:</strong> ${{ github.repository }}</p>
+          <p><strong>工作流:</strong> ${{ github.event.workflow_run.name }}</p>
+          <p><strong>运行编号:</strong> #${{ github.event.workflow_run.run_number }}</p>
+          <p><strong>状态:</strong> ${{ github.event.workflow_run.conclusion }}</p>
+          <p><strong>分支:</strong> ${{ github.event.workflow_run.head_branch }}</p>
+          
+          <hr>
+          
+          ${{ env.CHANGES_DETECTED == 'true' && '
+          <h3>✅ 自动修复已应用</h3>
+          <p>系统检测到构建失败并自动应用了修复。新的构建已触发。</p>
+          ' || '
+          <h3>❌ 自动修复失败</h3>
+          <p>系统无法自动修复此问题，需要手动检查。</p>
+          ' }}
+          
+          <p><a href="${{ github.event.workflow_run.html_url }}">查看构建详情</a></p>
+          
+          <hr>
+          <p><small>此邮件由 GitHub Actions 自动发送</small></p>
+      continue-on-error: true
+    
+    - name: Trigger rebuild
+      if: env.CHANGES_DETECTED == 'true'
+      run: |
+        echo "🔄 修复已推送，新构建将自动触发"
+        # 构建会自动触发，因为 push 事件会触发 Build APK 工作流

@@ -1,0 +1,67 @@
+name: Auto Fix Build Issues
+
+on:
+  workflow_run:
+    workflows: ["Build APK"]
+    types:
+      - completed
+
+jobs:
+  auto-fix:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Download build logs
+      uses: actions/download-artifact@v4
+      with:
+        name: build-logs
+        path: logs/
+      continue-on-error: true
+    
+    - name: Analyze and fix common issues
+      id: fix
+      run: |
+        echo "Analyzing build failure..."
+        
+        # 获取失败日志
+        curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+          "https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }}/logs" \
+          -o logs.zip || true
+        
+        # 分析常见错误并修复
+        if grep -q "debug.keystore not found" logs/*.txt 2>/dev/null || true; then
+          echo "Fixing: debug.keystore missing"
+          mkdir -p ~/.android
+          keytool -genkey -v -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US" || true
+        fi
+        
+        echo "Fix attempts completed"
+    
+    - name: Send notification to QQ Email
+      if: failure()
+      uses: dawidd6/action-send-mail@v3
+      with:
+        server_address: smtp.qq.com
+        server_port: 587
+        username: ${{ secrets.QQ_EMAIL }}
+        password: ${{ secrets.QQ_EMAIL_PASSWORD }}
+        subject: "🔧 羽球日记构建失败 - 自动修复已触发"
+        to: 318768183@qq.com
+        from: GitHub Actions
+        body: |
+          构建失败，已尝试自动修复。
+          
+          仓库: ${{ github.repository }}
+          工作流: ${{ github.event.workflow_run.name }}
+          运行编号: #${{ github.event.workflow_run.run_number }}
+          状态: ${{ github.event.workflow_run.conclusion }}
+          
+          查看详情: ${{ github.event.workflow_run.html_url }}
+          
+          如果自动修复失败，请手动检查代码。
