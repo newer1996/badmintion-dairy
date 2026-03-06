@@ -1,0 +1,100 @@
+plugins {
+    id "com.android.application"
+    id "kotlin-android"
+    id "dev.flutter.flutter-gradle-plugin"
+}
+
+def localProperties = new Properties()
+def localPropertiesFile = rootProject.file('local.properties')
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.withReader('UTF-8') { reader ->
+        localProperties.load(reader)
+    }
+}
+
+def flutterVersionCode = localProperties.getProperty('flutter.versionCode')
+if (flutterVersionCode == null) {
+    flutterVersionCode = '1'
+}
+
+def flutterVersionName = localProperties.getProperty('flutter.versionName')
+if (flutterVersionName == null) {
+    flutterVersionName = '1.0'
+}
+
+android {
+    namespace "com.example.badminton_diary"
+    // 小米澎湃OS: targetSdk >= 33 (Android 13)
+    compileSdkVersion 35
+    ndkVersion flutter.ndkVersion
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+
+    sourceSets {
+        main.java.srcDirs += 'src/main/kotlin'
+    }
+
+    defaultConfig {
+        applicationId "com.example.badminton_diary"
+        // 小米澎湃OS: minSdk 26+ 推荐
+        minSdkVersion 26
+        // 小米澎湃OS: targetSdk >= 34 (Android 14)
+        targetSdkVersion 35
+        versionCode flutterVersionCode.toInteger()
+        versionName flutterVersionName
+        
+        // 小米澎湃OS: 只打64位包 (arm64-v8a)
+        ndk {
+            abiFilters "arm64-v8a"
+        }
+        
+        // 小米澎湃OS 适配
+        multiDexEnabled true
+    }
+
+    signingConfigs {
+        release {
+            // 小米澎湃OS: 必须使用正式签名 V1+V2+V3
+            // 请替换为您的签名配置
+            storeFile file("release.keystore")
+            storePassword "your_password"
+            keyAlias "your_alias"
+            keyPassword "your_password"
+            // 启用 V1+V2+V3 签名
+            v1SigningEnabled true
+            v2SigningEnabled true
+            v3SigningEnabled true
+        }
+        debug {
+            // 调试签名
+        }
+    }
+
+    buildTypes {
+        release {
+            signingConfig signingConfigs.release
+            // 先不混淆，方便调试
+            minifyEnabled false
+            shrinkResources false
+        }
+        debug {
+            signingConfig signingConfigs.debug
+        }
+    }
+}
+
+flutter {
+    source '../..'
+}
+
+dependencies {
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+    implementation 'androidx.multidex:multidex:2.0.1'
+}

@@ -1,0 +1,57 @@
+name: badminton_diary
+description: 羽球日记 - 羽毛球爱好者专属记录工具
+
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # 状态管理
+  provider: ^6.1.1
+  
+  # 本地存储
+  shared_preferences: ^2.2.2
+  sqflite: ^2.3.0
+  path_provider: ^2.1.1
+  
+  # UI 组件
+  flutter_svg: ^2.0.9
+  fl_chart: ^0.66.0
+  table_calendar: ^3.0.9
+  
+  # 工具
+  intl: ^0.19.0
+  uuid: ^4.2.1
+  
+  # 权限管理
+  permission_handler: ^11.1.0
+  
+  # 小米澎湃OS 适配
+  device_info_plus: ^9.1.1
+
+  cupertino_icons: ^1.0.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.1
+
+flutter:
+  uses-material-design: true
+  
+  assets:
+    - assets/images/
+    - assets/icons/
+
+  fonts:
+    - family: NotoSansSC
+      fonts:
+        - asset: assets/fonts/NotoSansSC-Regular.otf
+        - asset: assets/fonts/NotoSansSC-Bold.otf
+          weight: 700
